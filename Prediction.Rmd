@@ -1,0 +1,88 @@
+---
+title: "Prediction Assignment"
+output: html_document
+---
+
+# Data
+
+The training data for this project are available here: 
+
+https://d396qusza40orc.cloudfront.net/predmachlearn/pml-training.csv
+
+The test data are available here: 
+
+https://d396qusza40orc.cloudfront.net/predmachlearn/pml-testing.csv
+
+# Model Building
+
+The training data is splitted into two subsets, i.e., training set and testing set. The random forest method is utilized to create the prediction model because it provides good accuracy and lesser overfitting as compared to decision trees.
+
+## Load packages
+
+```{r}
+library(caret)
+library(randomForest)
+library(e1071)
+```
+
+## Load data
+
+```{r}
+pml_training <- read.csv("pml-training.csv", na.strings = c("NA", "#DIV/0!", ""))
+pml_testing <- read.csv("pml-testing.csv", na.strings = c("NA", "#DIV/0!", ""))
+```
+
+## Remove missing values
+
+```{r}
+pml_training <- pml_training[,colSums(is.na(pml_training)) == 0]
+pml_testing <- pml_testing[,colSums(is.na(pml_testing)) == 0]
+```
+
+## Remove zero variance predictors
+
+```{r}
+zerovar <- nearZeroVar(pml_training)
+pml_training <- pml_training[-zerovar]
+pml_testing <- pml_testing[-zerovar]
+```
+
+## Remove extra variables
+
+```{r}
+pml_training <- pml_training[-c(1:7)]
+pml_testing <- pml_testing[,-c(1:7,59)]
+```
+
+## Split data
+
+```{r}
+set.seed(33333)
+inTrain <- createDataPartition(pml_training$classe, p = 0.75, list = FALSE)
+train <- pml_training[inTrain, ]
+test <- pml_training[-inTrain, ]
+```
+
+## Model training
+
+```{r}
+model <- randomForest(classe ~ ., data = train)
+mtraining <- predict(model, train)
+confusionMatrix(mtraining, train$classe)
+```
+
+# Cross Validation
+
+The cross validation is performed with the testing set using random forest method. Moreover, the out-of-sample error is expected to be minimum because the selected algorithm helps to reduce overfitting.
+
+```{r}
+validation <- predict(model, test)
+confusionMatrix(validation, test$classe)
+```
+
+# Prediction
+
+```{r}
+prediction <- predict(model, pml_testing)
+print(prediction)
+```
